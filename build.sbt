@@ -5,9 +5,10 @@ lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
   addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full),
   libraryDependencies ++= Seq(
     "io.frees" %% "frees-core" % freesV,
+    "io.frees"  %% "frees-async-cats-effect" % freesV,
     "io.frees" %% "frees-rpc" % "0.4.1",
     "org.scalameta" %% "scalameta" % "1.8.0"),
-  scalacOptions += "-Xplugin-require:macroparadise",
+  scalacOptions ++= Seq("-Xplugin-require:macroparadise", "-Ywarn-unused-import"),
   scalacOptions in(Compile, console) ~= (_ filterNot (_ contains "paradise")) // macroparadise plugin doesn't work in repl yet.
 )
 
@@ -42,6 +43,14 @@ lazy val services = project
   .settings(commonSettings)
   .aggregate(`functional-microservices`)
   .dependsOn(`functional-microservices`)
+
+// RPC Server.
+lazy val server = project
+  .in(file("server"))
+  .settings(moduleName := "rpc-server")
+  .settings(commonSettings)
+  .aggregate(services)
+  .dependsOn(services)
 
 // Our application where we will test everything we are building:
 lazy val app = project
