@@ -183,3 +183,155 @@ The output should be similar to:
 ```
 
 ## Freestyle RPC - Protocols and Services
+
+Previously, we added the `frees-rpc` dependency to your project's build file:
+
+```scala
+libraryDependencies += "io.frees" %% "frees-rpc" % "0.4.1"
+```
+
+Hence, we are able to start with the definition and implementation of our Microservices, using `frees-rpc`. Everything in this section will happen in the `services` sbt module.
+
+First of all, we are going to move the common implicits to a common place, since we need to start thinking in we will have several runnable parts, like server and client applications.
+
+By now, we only need to move the implicit `ExecutionContext` to our common space. Hence, pick it up from `scalaexchange.app.AppStreamingService` and create the following object to put it up (file path [./src/main/scala/implicits.scala](./src/main/scala/implicits.scala)):
+
+```scala
+package scalaexchange
+
+import monix.execution.Scheduler
+
+trait CommonImplicits {
+
+  implicit val S: Scheduler = monix.execution.Scheduler.Implicits.global
+
+}
+
+object implicits extends CommonImplicits
+```
+
+Next, change the class `AppStreamingService` accordingly:
+
+```scala
+package scalaexchange
+package app
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+import scalaexchange.datagenerator.StreamingService
+
+object AppStreamingService extends CommonImplicits {
+
+  def main(args: Array[String]): Unit = {
+    val streamingService: StreamingService = new StreamingService
+
+    Await.ready(streamingService.userEventsStream.completedL.runAsync, Duration.Inf)
+  }
+
+}
+```
+
+Let's focus now in the most important part of this section: create a protocol definition with a service implementation, with the help of [Freestyle RPC](https://github.com/frees-io/freestyle-rpc).
+
+### Protocol Definition
+
+In this first approach, we'll define a simple unary service, receiving an empty request and returning a single response. In fact, we are defining a service which will return the set of segments that our `RFM` microservices will manage from now on, in order to clasify the different users.
+
+* Segment definition:
+  * title: String
+  * minRecency: Int
+  * maxRecency: Int
+  * minFrequency: Int
+  * maxFrequency: Int
+  * minMonetary: Int
+  * maxMonetary: Int
+* Segment list example our service should return:
+  * Segment("Champions", 4, 5, 4, 5, 4, 5)
+  * Segment("Loyal Customers", 2, 5, 3, 5, 3, 5)
+  * Segment("Potential Loyalist", 3, 5, 1, 3, 1, 3)
+  * Segment("New Customers", 4, 5, 0, 1, 0, 1)
+  * Segment("Customers Needing Attention", 3, 4, 0, 1, 0, 1)
+  * Segment("About To Sleep", 2, 3, 0, 2, 0, 2)
+  * Segment("Can't Lose Them", 0, 1, 4, 5, 4, 5)
+  * Segment("At Risk", 0, 2, 2, 5, 2, 5)
+  * Segment("Hibernating", 1, 2, 1, 2, 1, 2)
+  * Segment("Lost", 0, 2, 0, 2, 0, 2)
+* Protocol Definition, which we are going to define it at [./services/src/main/scala/protocol.scala](./services/src/main/scala/protocol.scala), as next:
+
+```scala
+package scalaexchange
+package services
+
+import freestyle.rpc.protocol._
+
+object protocol {
+
+  final case class Segment(
+      title: String,
+      minRecency: Int,
+      maxRecency: Int,
+      minFrequency: Int,
+      maxFrequency: Int,
+      minMonetary: Int,
+      maxMonetary: Int
+  )
+
+  final case class SegmentList(list: List[Segment])
+
+  @service
+  trait RFMAnalysisService[F[_]] {
+
+    @rpc(Avro) def segments(empty: Empty.type): F[SegmentList]
+
+  }
+
+}
+```
+
+Notice about `@service` and `@rpc(Avro)` annotations, both are provided by Freestyle RPC. The first one allows to define an RPC service. The second one though, brings us the ability to define an RPC service. In this case, we are serialising with `Avro` but `Protocol Buffers` is also supported (you must use `Protobuf` instead).
+
+### Service Implementation
+
+So far so good, what about the implementation? Initially, let's provide a simple implementation to serve the user segment list (`SegmentList`). We could do it at [./services/src/main/scala/runtime/RFMAnalysisServiceHandler.scala](./services/src/main/scala/runtime/RFMAnalysisServiceHandler.scala):
+
+```scala
+package scalaexchange
+package services
+package runtime
+
+import cats.Applicative
+import freestyle.rpc.protocol._
+
+import scalaexchange.services.protocol._
+
+class RFMAnalysisServiceHandler[F[_]: Applicative] extends RFMAnalysisService[F] {
+
+  private[this] val segmentList: List[Segment] = List(
+    Segment("Champions", 4, 5, 4, 5, 4, 5),
+    Segment("Loyal Customers", 2, 5, 3, 5, 3, 5),
+    Segment("Potential Loyalist", 3, 5, 1, 3, 1, 3),
+    Segment("New Customers", 4, 5, 0, 1, 0, 1),
+    Segment("Customers Needing Attention", 3, 4, 0, 1, 0, 1),
+    Segment("About To Sleep", 2, 3, 0, 2, 0, 2),
+    Segment("Can't Lose Them", 0, 1, 4, 5, 4, 5),
+    Segment("At Risk", 0, 2, 2, 5, 2, 5),
+    Segment("Hibernating", 1, 2, 1, 2, 1, 2),
+    Segment("Lost", 0, 2, 0, 2, 0, 2)
+  )
+
+  override def segments(empty: Empty.type): F[protocol.SegmentList] =
+    Applicative[F].pure(SegmentList(segmentList))
+
+}
+```
+
+As you can see, we are hardcoding the segment list, nonetheless, this list could be fetched from a database, but we are good for now with this dummy implementation.
+
+As takeaways, with this protocol definition we have two things:
+
+* Service that can be attached to any RPC server.
+* Auto-derived rpc client of this service.
+
+In the next section, we are going to see both pieces in action, end-to-end.
+
+## RPC Server and RPC Client usage

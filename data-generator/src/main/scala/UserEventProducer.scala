@@ -1,4 +1,5 @@
 package scalaexchange
+package datagenerator
 
 import com.fortysevendeg.scalacheck.datetime.GenDateTime
 import com.fortysevendeg.scalacheck.datetime.instances.joda.jodaForPeriod
@@ -10,15 +11,15 @@ import org.joda.time.{DateTime, Period}
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * This producer, based on scalacheck generators will returns `UserEvent` with
-  * the following potential values:
-  *
-  * Id: a value between 1 to 100.
-  * EventType: ProcessedCheckout, UnprocessedCheckout or Login.
-  * Date: dates between 2017-12-01 - 2017-12-22.
-  *
-  * @param interval Interval of time the producer will send a new message.
-  */
+ * This producer, based on scalacheck generators will returns `UserEvent` with
+ * the following potential values:
+ *
+ * Id: a value between 1 to 100.
+ * EventType: ProcessedCheckout, UnprocessedCheckout or Login.
+ * Date: dates between 2017-12-01 - 2017-12-22.
+ *
+ * @param interval Interval of time the producer will send a new message.
+ */
 class UserEventProducer(interval: FiniteDuration) extends Observable[UserEvent] {
 
   override def unsafeSubscribeFn(subscriber: Subscriber[UserEvent]): Cancelable = {
