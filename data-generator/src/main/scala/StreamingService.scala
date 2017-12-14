@@ -1,4 +1,5 @@
 package scalaexchange
+package datagenerator
 
 import monix.reactive.Observable
 
