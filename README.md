@@ -184,17 +184,17 @@ The output should be similar to:
 
 ## Freestyle RPC - Protocols and Services
 
-Previously, we added the `frees-rpc` dependency to your project's build file:
+Previously, we added the `frees-rpc` dependency to your project's `build.sbt` file:
 
 ```scala
 libraryDependencies += "io.frees" %% "frees-rpc" % "0.4.1"
 ```
 
-Hence, we are able to start with the definition and implementation of our Microservices, using `frees-rpc`. Everything in this section will happen in the `services` sbt module.
+Hence, we are able to start with the definition and implementation of our microservices, using `frees-rpc`. Everything in this section will happen in the `services` sbt module.
 
-First of all, we are going to move the common implicits to a common place, since we need to start thinking in we will have several runnable parts, like server and client applications.
+First of all, we are going to move the common implicits to a common place, since we need to start thinking in that we will have several runnable parts, like server and client applications.
 
-By now, we only need to move the implicit `ExecutionContext` to our common space. Hence, pick it up from `scalaexchange.app.AppStreamingService` and create the following object to put it up (file path [./src/main/scala/implicits.scala](./src/main/scala/implicits.scala)):
+At this point, we only need to move the implicit `ExecutionContext` to our common space. Hence, pick it up from `scalaexchange.app.AppStreamingService` and create the following object to put it there (file path [./src/main/scala/implicits.scala](./src/main/scala/implicits.scala)):
 
 ```scala
 package scalaexchange
@@ -245,7 +245,7 @@ In this first approach, we'll define a simple unary service, receiving an empty 
   * maxFrequency: Int
   * minMonetary: Int
   * maxMonetary: Int
-* Segment list example our service should return:
+* Example showing the list of Segments that our service could  return:
   * Segment("Champions", 4, 5, 4, 5, 4, 5)
   * Segment("Loyal Customers", 2, 5, 3, 5, 3, 5)
   * Segment("Potential Loyalist", 3, 5, 1, 3, 1, 3)
@@ -256,7 +256,7 @@ In this first approach, we'll define a simple unary service, receiving an empty 
   * Segment("At Risk", 0, 2, 2, 5, 2, 5)
   * Segment("Hibernating", 1, 2, 1, 2, 1, 2)
   * Segment("Lost", 0, 2, 0, 2, 0, 2)
-* Protocol Definition, which we are going to define it at [./services/src/main/scala/protocol.scala](./services/src/main/scala/protocol.scala), as next:
+* Protocol Definition, which we are going to define it at [./services/src/main/scala/protocol.scala](./services/src/main/scala/protocol.scala), as shown below:
 
 ```scala
 package scalaexchange
@@ -288,7 +288,7 @@ object protocol {
 }
 ```
 
-Notice about `@service` and `@rpc(Avro)` annotations, both are provided by Freestyle RPC. The first one allows to define an RPC service. The second one though, brings us the ability to define an RPC service. In this case, we are serialising with `Avro` but `Protocol Buffers` is also supported (you must use `Protobuf` instead).
+Notice the `@service` and `@rpc(Avro)` annotations, both are provided by Freestyle RPC. The first one allows to define an RPC service. The second one though, brings us the ability to define an RPC service. In this case, we are serialising with `Avro` but `Protocol Buffers` is also supported (in that case you should use `Protobuf` instead).
 
 ### Service Implementation
 
@@ -327,9 +327,9 @@ class RFMAnalysisServiceHandler[F[_]: Applicative] extends RFMAnalysisService[F]
 
 As you can see, we are hardcoding the segment list, nonetheless, this list could be fetched from a database, but we are good for now with this dummy implementation.
 
-As takeaways, with this protocol definition we have two things:
+As takeaways, with this protocol definition, we have two things:
 
-* Service that can be attached to any RPC server.
+* A service that can be attached to any RPC server.
 * Auto-derived rpc client of this service.
 
 In the next section, we are going to see both pieces in action, end-to-end.
