@@ -1,6 +1,7 @@
 lazy val freesV = "0.4.6"
 
 lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
+  resolvers += Resolver.bintrayRepo("beyondthelines", "maven"),
   addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full),
   libraryDependencies ++= Seq(
     "io.frees" %% "frees-core" % freesV,

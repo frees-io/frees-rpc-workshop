@@ -39,10 +39,11 @@ Before that, let's add some new sbt settings (and sbt modules) to be able to put
 
 Add the following to your project's `build.sbt` file:
 
-* Common Settings and dependency well use for every module in our project:
+* Common Settings and dependency we'll use for every module in our project:
 
 ```scala
 lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
+  resolvers += Resolver.bintrayRepo("beyondthelines", "maven"),
   addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full),
   libraryDependencies ++= Seq(
     "io.frees" %% "frees-core" % freesV,
@@ -94,7 +95,7 @@ case class DataGenerationException(message: String, maybeCause: Option[Throwable
 }
 ```
 
-* Now, let's define three new `sbt` modules at once that will be needed later on:
+* Now, let's define three new `sbt` modules, also in our `build.sbt`, at once that will be needed later on:
 
 ```scala
 // Data Generator:
@@ -130,9 +131,9 @@ lazy val app = project
   .dependsOn(`data-generator`, services)
 ```
 
-* Streaming Data Generation: you can directly copy this code from this path [./data-generator/src/main/scala/](./data-generator/src/main/scala/), given this code is out of the scope of this workshop.
+* Streaming Data Generation: you can copy this code verbatim from this path [./data-generator/src/main/scala/](./data-generator/src/main/scala/) inside the `data-generator` sbt module folder, given this code is out of the scope of this workshop. Notice that this should be under the `data-generator` folder.
 
-* Checkpoint: let's test this streaming data generation before moving on to the next section. Under `app` sbt module ([./app/src/main/scala/App.scala](./app/src/main/scala/App.scala)), add the following:
+* Checkpoint: let's test this streaming data generation before moving onto the next section. We create the `App` class inside the `app` sbt module folder([./app/src/main/scala/App.scala](./app/src/main/scala/App.scala)). Notice that this should be under the `app` folder.
 
 ```scala
 package scalaexchange
