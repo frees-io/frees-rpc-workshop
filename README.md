@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/frees-io/frees-rpc-workshop.svg?branch=master)](https://travis-ci.org/frees-io/frees-rpc-workshop)
+
 # frees-workshop: Building Purely Functional Microservices
 
 In this workshop, you will learn how to build from a purely functional application from scratch and expose it as a microservice with Freestyle and Freestyle RPC.
@@ -83,7 +85,11 @@ sbt run
 
 ## App Domain and Data Generator
 
-In this section, we'll see the different models that we will be using during the workshop.
+In this section, we'll review the different models that we will be using during the workshop. We'll use the [RFM Analysis](https://en.wikipedia.org/wiki/RFM_(customer_value)) as domain problem. RFM is a method used for analyzing customer value. It is commonly used in marketing and has wide spread applications in retail industries. RFM stands for:
+
+* Recency – How recently did the customer purchase?
+* Frequency – How often do they purchase?
+* Monetary Value – How much do they spend?
 
 First off, let's add some new sbt settings (and sbt modules) to allow us to put our code in the right place.
 
