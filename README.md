@@ -339,9 +339,9 @@ In the next section, we are going to see both pieces in action, end-to-end.
 As we mentioned at the end of the last section, we are:
 
 * Bootstrapping an RPC Server (on port `8080`, for example). Before doing that, we need to bind the previous service to this server.
-* Invoke the service from the client side, using the auto-generated client for the defined protocol previously.
+* Invoke the service from the client side, using the auto-generated client for the previously defined protocol.
 
-For both challenges, we need to apply effects to an specific concurrent Monad. We've chosen `cats.effect.IO`, from [cats-effect](https://github.com/typelevel/cats-effect), but could be anything else. For this reason, we are adding to our [build.sbt](./build.sbt) file the sbt dependency, which it'll be provided transitively by [frees-async-cats-effect](https://github.com/frees-io/freestyle/tree/master/modules/async/async-cats-effect/shared/src) Freestyle integration. This integration basically provides an `AsyncContext` for `cats.effect.IO`.
+For both challenges, we need to apply effects to an specific concurrent Monad. We've chosen `cats.effect.IO`, from [cats-effect](https://github.com/typelevel/cats-effect), but could be any other. For this reason, we are adding to our [build.sbt](./build.sbt) file the sbt dependency, which it'll be provided transitively by [frees-async-cats-effect](https://github.com/frees-io/freestyle/tree/master/modules/async/async-cats-effect/shared/src) Freestyle integration. This integration basically provides an `AsyncContext` for `cats.effect.IO`.
 
 Add the following to the `commonSettings`:
 
@@ -363,7 +363,7 @@ lazy val server = project
 
 ### RPC Server
 
-All the code about this subsection will be placed at [./server/src/main/scala/](./server/src/main/scala/).
+All the code about this subsection will be placed at `server.scala` in [./server/src/main/scala/](./server/src/main/scala/).
 
 * Concurrent Monad definition. In this case we could add a type alias for simplicity. This might be placed inside a `package object`, for example:
 
@@ -382,8 +382,10 @@ package object serverapp {
 ```
 
 * Implicit Runtime evidences. At least we need to provide:
-  * An `FSHandler` (Natural Transformation) instance of the service defined previously.
+  * An `FSHandler` (Natural Transformation) instance of the service defined before.
   * Server configuration, where we will bind the `RFMAnalysis` service and configure the tcp port to `8080`.
+  
+  This is done at `implicits.scala` in [./server/src/main/scala/](./server/src/main/scala/)
 
 ```scala
 package scalaexchange
@@ -418,6 +420,8 @@ trait Implicits extends scalaexchange.CommonImplicits {
 Notice `import freestyle.rpc.server.implicits._`, which is providing all we need to bootstrap the server, in terms of common async instances and so on.
 
 * Finally, how the **Server** would look like?
+  Have a look to `ServerApp.scala` in [./server/src/main/scala/](./server/src/main/scala/)
+
 
 ```scala
 package scalaexchange
@@ -445,7 +449,9 @@ sbt server/run
 
 Now, let's see how the auto-generated client can be used to invoke this service, we'll do it in our [app](./app/src/main/scala) sbt module.
 
-First, let's define some needed instances to setup the client, like the port where the server is listening about incoming connections.
+First, let's define some needed instances to setup the client, like the port where the server is listening to the incoming connections.
+
+Let's start with `implicits.scala` in [./app/src/main/scala/](./app/src/main/scala/)
 
 ```scala
 package scalaexchange
@@ -469,7 +475,9 @@ trait Implicits extends scalaexchange.CommonImplicits {
 }
 ```
 
-Then, let's use the auto-derived client based on the protocol definition of the service:
+Then, let's use the auto-derived client based on the protocol definition of the service.
+
+See `AppRFMClient.scala` in [./app/src/main/scala/](./app/src/main/scala/)
 
 ```scala
 package scalaexchange
@@ -497,14 +505,14 @@ object AppRFMClient extends Implicits {
 }
 ```
 
-Keep in mind two important _imports_ that are making possible this program interpretation to the `ConcurrentMonad`, which is a `cats.effect.IO` type alias, as we mentioned earlier:
+Keep in mind two important _imports_ that are making possible this program interpretation by the `ConcurrentMonad`, which is a `cats.effect.IO` type alias, as we mentioned earlier:
 
 ```
 import freestyle.asyncCatsEffect.implicits._ // From frees-async-cats-effect
 import freestyle.rpc.client.implicits._      // From frees-rpc
 ```
 
-If you did run the server, you can test this client typing the following command:
+If you did run the server in the previous step, now you can test this client typing the following command:
 
 ```bash
 sbt "app/runMain scalaexchange.app.AppRFMClient"
