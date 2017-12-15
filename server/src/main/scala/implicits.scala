@@ -5,13 +5,15 @@ import cats.{~>, Applicative}
 import freestyle.rpc.server.handlers.GrpcServerHandler
 import freestyle.rpc.server._
 import freestyle.rpc.server.implicits._
-import scalaexchange.services.protocol.RFMAnalysisService
+import monix.eval.Task
 
+import scalaexchange.services.protocol.RFMAnalysisService
 import scalaexchange.services.runtime.RFMAnalysisServiceHandler
 
 trait Implicits extends scalaexchange.CommonImplicits {
 
-  implicit def rfmAnalisysServiceHandler[F[_]: Applicative]: RFMAnalysisServiceHandler[F] =
+  implicit def rfmAnalisysServiceHandler[F[_]: Applicative](
+      implicit T2F: Task ~> F): RFMAnalysisServiceHandler[F] =
     new RFMAnalysisServiceHandler[F]
 
   val grpcConfigs: List[GrpcConfig] = List(

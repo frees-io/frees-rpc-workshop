@@ -2,14 +2,20 @@ package scalaexchange
 package services
 package runtime
 
-import cats.Applicative
+import java.io.File
+
+import cats.{~>, Applicative}
+import com.github.tototoshi.csv._
 import freestyle.rpc.protocol._
+import monix.eval.Task
+import monix.execution.Scheduler
 import monix.reactive.Observable
 
 import scalaexchange.datagenerator.StreamingService
 import scalaexchange.services.protocol._
 
-class RFMAnalysisServiceHandler[F[_]: Applicative] extends RFMAnalysisService[F] {
+class RFMAnalysisServiceHandler[F[_]: Applicative](implicit S: Scheduler, T2F: Task ~> F)
+    extends RFMAnalysisService[F] {
 
   private[this] val segmentList: List[Segment] = List(
     Segment("Champions", 4, 5, 4, 5, 4, 5),
@@ -26,9 +32,27 @@ class RFMAnalysisServiceHandler[F[_]: Applicative] extends RFMAnalysisService[F]
 
   private[this] val streamingService = new StreamingService
 
+  private[this] val outPath: String = "orders.csv"
+
   override def segments(empty: Empty.type): F[protocol.SegmentList] =
     Applicative[F].pure(SegmentList(segmentList))
 
   override def userEvents(empty: Empty.type): F[Observable[UserEvent]] =
     Applicative[F].pure(streamingService.userEventsStream)
+
+  override def orderStream(orders: Observable[Order]): F[Ack] = T2F {
+    val f: File           = new File(outPath)
+    val writer: CSVWriter = CSVWriter.open(f)
+
+    orders
+      .foreachL { order =>
+        writer.writeRow(
+          List(order.data.date, order.data.orderId, order.customerId, order.data.total)
+        )
+      }
+      .map { _ =>
+        writer.close()
+        Ack(" 👍 ")
+      }
+  }
 }
