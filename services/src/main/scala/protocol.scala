@@ -18,6 +18,8 @@ object protocol {
 
   final case class SegmentList(list: List[Segment])
 
+  final case class Ack(result: String)
+
   @service
   trait RFMAnalysisService[F[_]] {
 
@@ -26,6 +28,10 @@ object protocol {
     @rpc(Avro)
     @stream[ResponseStreaming.type]
     def userEvents(empty: Empty.type): F[Observable[UserEvent]]
+
+    @rpc(Avro)
+    @stream[RequestStreaming.type]
+    def orderStream(orders: Observable[Order]): F[Ack]
 
   }
 
