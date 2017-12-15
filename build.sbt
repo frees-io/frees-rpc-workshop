@@ -41,8 +41,8 @@ lazy val services = project
   .in(file("services"))
   .settings(moduleName := "rpc-services")
   .settings(commonSettings)
-  .aggregate(`functional-microservices`)
-  .dependsOn(`functional-microservices`)
+  .aggregate(`functional-microservices`, `data-generator`)
+  .dependsOn(`functional-microservices`, `data-generator`)
 
 // RPC Server.
 lazy val server = project
