@@ -2,6 +2,7 @@ package scalaexchange
 package services
 
 import freestyle.rpc.protocol._
+import monix.reactive.Observable
 
 object protocol {
 
@@ -21,6 +22,10 @@ object protocol {
   trait RFMAnalysisService[F[_]] {
 
     @rpc(Avro) def segments(empty: Empty.type): F[SegmentList]
+
+    @rpc(Avro)
+    @stream[ResponseStreaming.type]
+    def userEvents(empty: Empty.type): F[Observable[UserEvent]]
 
   }
 

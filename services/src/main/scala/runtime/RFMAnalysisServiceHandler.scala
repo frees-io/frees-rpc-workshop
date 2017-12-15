@@ -4,7 +4,9 @@ package runtime
 
 import cats.Applicative
 import freestyle.rpc.protocol._
+import monix.reactive.Observable
 
+import scalaexchange.datagenerator.StreamingService
 import scalaexchange.services.protocol._
 
 class RFMAnalysisServiceHandler[F[_]: Applicative] extends RFMAnalysisService[F] {
@@ -22,7 +24,11 @@ class RFMAnalysisServiceHandler[F[_]: Applicative] extends RFMAnalysisService[F]
     Segment("Lost", 0, 2, 0, 2, 0, 2)
   )
 
+  private[this] val streamingService = new StreamingService
+
   override def segments(empty: Empty.type): F[protocol.SegmentList] =
     Applicative[F].pure(SegmentList(segmentList))
 
+  override def userEvents(empty: Empty.type): F[Observable[UserEvent]] =
+    Applicative[F].pure(streamingService.userEventsStream)
 }
