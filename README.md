@@ -668,9 +668,9 @@ The expected result is that both server and client console outputs will show the
 
 ## Client Streaming
 
-So far, we've seen how to implement RPC services in two different fashions: unary and server streaming. Now, we are going to see how to implement a new type of service where the client is who is the one sending a stream of data. Concretely, and for demo purposes in this workshop, think about a server endpoint able to store `Orders` somewhere that any client is sending them in a streaming way.
+So far, we've seen how to implement RPC services in two different fashions: unary and server streaming. Now, we are going to see how to implement a new type of service where the client is the one sending a stream of data. Concretely, and for demo purposes in this workshop, think about a server endpoint able to store `Orders` somewhere that any client is sending them in a streaming way.
 
-* As usual, let's add some new settings to our `build.sbt` file. Concretely, for the sake of simplicity, we are adding a couple of new dependencies to our `commonSettings` val:
+* As usual, let's add some new settings to our `build.sbt` file. For the sake of simplicity, we are adding a couple of new dependencies to our `commonSettings` val:
 
 ```scala
 // ... libraryDependencies ++= Seq(
@@ -679,7 +679,7 @@ So far, we've seen how to implement RPC services in two different fashions: unar
 //...
 ```
 
-* Let's define a new model for orders, which we could placed at [./src/main/scala/models.scala](./src/main/scala/models.scala):
+* Let's define a new model for orders, which we could place at [./src/main/scala/models.scala](./src/main/scala/models.scala):
 
 ```scala
 case class CustomerData(date: String, orderId: String, total: Int)
@@ -687,7 +687,7 @@ case class CustomerData(date: String, orderId: String, total: Int)
 case class Order(customerId: Int, data: CustomerData)
 ```
 
-* Moving on we are now prepared to add this new client streaming service to the protocol definition:
+* Moving on, we are now prepared to add this new client streaming service to the protocol definition at [./services/src/main/scala/protocol.scala](./services/src/main/scala/protocol.scala)
 
 ```scala
 // ... Add a sample response message as ack of this new service
@@ -765,9 +765,9 @@ class RFMAnalysisServiceHandler[F[_]: Applicative](implicit S: Scheduler, T2F: T
 }
 ```
 
-Few new things needed for the `orderStream` service implementation:
+Now, a few new things needed for the `orderStream` service implementation:
 
-- A CSV Writer for Scala, in this case we are using: https://github.com/tototoshi/scala-csv. In fact, these order stream could be store somewhere else, like a database or sent to a kafka topic, among others options.
+- A CSV Writer for Scala, in this case we are using: https://github.com/tototoshi/scala-csv. However, this order stream could be store somewhere else, like a database or sent to a kafka topic, among other choices.
 - In the class constructor, we are requiring a new implicit dependency (`T2F: Task ~> F`), which is a natural transformation to go from `monix.eval.Task` to our `F`. This is needed because of the way we are consuming the `monix.reactive.Observable` through the `foreachL` (it creates a new `monix.eval.Task Task` that will consume the observable, executing the given callback for each element).
 
 * Actually, we need to specify the same implicit evidence requirement when instantiating the `RFMAnalysisServiceHandler`, at class [scalaexchange.serverapp.Implicits](./server/src/main/scala/implicits.scala):
@@ -780,7 +780,10 @@ implicit def rfmAnalisysServiceHandler[F[_]: Applicative](
 
 Fortunately, we don't need to implement anything else because `frees-rpc` is providing for free this natural transformation when importing `freestyle.rpc.server.implicits._`.
 
-* To finish this section, let's update our client application with the new server version, where we can invoke the `orderStream` service sending a stream of orders. In order to create the stream, we are using scalacheck too, together with [scalacheck-toolbox](https://github.com/47deg/scalacheck-toolbox) to generate random dates for an specific period of time.
+* To finish this section, let's update our client application with the new server version, where we can invoke the `orderStream` service that sends a stream of orders. In order to create the stream, we are using scalacheck too, together with [scalacheck-toolbox](https://github.com/47deg/scalacheck-toolbox) to generate random dates for an specific period of time.
+
+See [./app/src/main/scala/AppRFMClient.scala](./app/src/main/scala/AppRFMClient.scala)
+
 
 ```scala
 package scalaexchange
@@ -859,7 +862,7 @@ And run the new client application version:
 sbt "app/runMain scalaexchange.app.AppRFMClient"
 ```
 
-The expected result for the things done in this section would be that you will find an `orders.csv` file within your project, which will contain all the orders sent via streaming from the client.
+The expected result for the things done in this section would be that you will find an `orders.csv` file within your project, which will contain all the orders sent via streaming from the client. Pat your back for reaching this point.
 
 ## What's Next
 
