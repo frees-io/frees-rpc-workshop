@@ -1,8 +1,60 @@
+[![Build Status](https://travis-ci.org/frees-io/frees-rpc-workshop.svg?branch=master)](https://travis-ci.org/frees-io/frees-rpc-workshop)
+
 # frees-workshop: Building Purely Functional Microservices
 
-In this workshop you will learn how to build from scratch a purely functional application and expose it as a microservice with Freestyle and Freestyle RPC.
+In this workshop, you will learn how to build from a purely functional application from scratch and expose it as a microservice with Freestyle and Freestyle RPC.
 
-This will be a hands on coding session where we will architect a small application based on Algebras and Modules that can be exposed as an RPC microservice supporting Protobuf and Avro serialization protocols.
+This will be a hands-on coding session where we will architect a small application based on Algebras and Modules that can be exposed as an RPC microservice supporting Protobuf and Avro serialization protocols.
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Basic Freestyle Structure](#basic-freestyle-structure)
+- [App Domain and Data Generator](#app-domain-and-data-generator)
+- [Freestyle RPC - Protocols and Services](#freestyle-rpc---protocols-and-services)
+  - [Protocol Definition](#protocol-definition)
+  - [Service Implementation](#service-implementation)
+- [RPC Server and RPC Client usage](#rpc-server-and-rpc-client-usage)
+  - [RPC Server](#rpc-server)
+  - [App Client Demo](#app-client-demo)
+- [Server Streaming](#server-streaming)
+- [Client Streaming](#client-streaming)
+- [What's Next](#whats-next)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+Before starting, just a mention that you can "roll" – view and navigate – the Git commit history thanks to https://github.com/sbt/sbt-groll, and see/compile/test step by step all the content in this repository. Basic usage:
+
+* See the full commit history:
+
+```bash
+sbt:functional-microservices> groll list
+[info] == a00df1c 6 - RPC Client Streaming
+[info]    4294dda 5 - RPC Server Streaming
+[info]    cbbc324 4 - RPC Server and RPC Client usage
+[info]    1fd1a47 3 - RPC Unary Services - Protocols
+[info]    8ba3f75 2 - App Domain and Data Generator
+[info]    bee6895 1 - Basic Freestyle project structure
+```
+
+* Move to the first commit (`1 - Basic Freestyle project structure`):
+
+```bash
+groll move bee6895
+```
+
+* Move to the next commit:
+
+```bash
+groll next
+```
+
+* Moves to the previous commit:
+
+```bash
+groll prev
+```
 
 ## Basic Freestyle Structure
 
@@ -33,9 +85,13 @@ sbt run
 
 ## App Domain and Data Generator
 
-In this section we'll see the different models that we will be using along the workshop.
+In this section, we'll review the different models that we will be using during the workshop. We'll use the [RFM Analysis](https://en.wikipedia.org/wiki/RFM_(customer_value)) as domain problem. RFM is a method used for analyzing customer value. It is commonly used in marketing and has wide spread applications in retail industries. RFM stands for:
 
-Before that, let's add some new sbt settings (and sbt modules) to be able to put our code in the right place.
+* Recency – How recently did the customer purchase?
+* Frequency – How often do they purchase?
+* Monetary Value – How much do they spend?
+
+First off, let's add some new sbt settings (and sbt modules) to allow us to put our code in the right place.
 
 Add the following to your project's `build.sbt` file:
 
@@ -66,9 +122,9 @@ lazy val `functional-microservices` = project
   .settings(commonSettings)
 ```
 
-* Remove all the code provided by the giter8 template (you can just directly remove the `scalaexchange` folder/package), since we are building everything from scratch in the next steps. In fact, from now on, `functional-microservices` sbt module will be used as the common build, which it'll be visible for the rest of the sbt modules.
+* Remove all the code provided by the giter8 template (you can just directly remove the `scalaexchange` folder/package), since we are building everything from scratch in the next steps. In fact, from now on, `functional-microservices` sbt module will be used as the common build, which will be visible for the rest of the sbt modules.
 
-* Our model, that could be placed in the common space within our project ([./src/main/scala](./src/main/scala)):
+* Our model, that can be placed in the common space within our project ([./src/main/scala](./src/main/scala)):
 
   * [./src/main/scala/models.scala](./src/main/scala/models.scala):
 
@@ -95,7 +151,7 @@ case class DataGenerationException(message: String, maybeCause: Option[Throwable
 }
 ```
 
-* Now, let's define three new `sbt` modules, also in our `build.sbt`, at once that will be needed later on:
+* Now, let's define three new `sbt` modules, also in our `build.sbt`, that will be needed later on:
 
 ```scala
 // Data Generator:
@@ -131,7 +187,7 @@ lazy val app = project
   .dependsOn(`data-generator`, services)
 ```
 
-* Streaming Data Generation: you can copy this code verbatim from this path [./data-generator/src/main/scala/](./data-generator/src/main/scala/) inside the `data-generator` sbt module folder, given this code is out of the scope of this workshop. Notice that this should be under the `data-generator` folder.
+* Streaming Data Generation: you can copy this code verbatim from this path [./data-generator/src/main/scala/](./data-generator/src/main/scala/) inside the `data-generator` sbt module folder, given that this code is out of the scope of this workshop. Notice that this should be under the `data-generator` folder.
 
 * Checkpoint: let's test this streaming data generation before moving onto the next section. We create the `AppStreamingService` class inside the `app` sbt module folder([./app/src/main/scala/AppStreamingService.scala](./app/src/main/scala/AppStreamingService.scala)). Notice that this should be under the `app` folder.
 
@@ -192,7 +248,7 @@ libraryDependencies += "io.frees" %% "frees-rpc" % "0.4.1"
 
 Hence, we are able to start with the definition and implementation of our microservices, using `frees-rpc`. Everything in this section will happen in the `services` sbt module.
 
-First of all, we are going to move the common implicits to a common place, since we need to start thinking in that we will have several runnable parts, like server and client applications.
+First of all, we are going to move the common implicits to a common place, since we need to start thinking about the fact that we'll have several runnable parts, like server and client applications.
 
 At this point, we only need to move the implicit `ExecutionContext` to our common space. Hence, pick it up from `scalaexchange.app.AppStreamingService` and create the following object to put it there (file path [./src/main/scala/implicits.scala](./src/main/scala/implicits.scala)):
 
@@ -231,7 +287,7 @@ object AppStreamingService extends CommonImplicits {
 }
 ```
 
-Let's focus now in the most important part of this section: create a protocol definition with a service implementation, with the help of [Freestyle RPC](https://github.com/frees-io/freestyle-rpc).
+Let's focus now on the most important part of this section: creating a protocol definition with a service implementation, with the help of [Freestyle RPC](https://github.com/frees-io/freestyle-rpc).
 
 ### Protocol Definition
 
@@ -288,11 +344,11 @@ object protocol {
 }
 ```
 
-Notice the `@service` and `@rpc(Avro)` annotations, both are provided by Freestyle RPC. The first one allows to define an RPC service. The second one though, brings us the ability to define an RPC service. In this case, we are serialising with `Avro` but `Protocol Buffers` is also supported (in that case you should use `Protobuf` instead).
+Notice the `@service` and `@rpc(Avro)` annotations, both are provided by Freestyle RPC. The first one allows us to define an RPC service. The second one though, brings us the ability to define an RPC service. In this case, we are serialising with `Avro` but `Protocol Buffers` is also supported (in that case you should use `Protobuf` instead).
 
 ### Service Implementation
 
-So far so good, what about the implementation? Initially, let's provide a simple implementation to serve the user segment list (`SegmentList`). We could do it at [./services/src/main/scala/runtime/RFMAnalysisServiceHandler.scala](./services/src/main/scala/runtime/RFMAnalysisServiceHandler.scala):
+So far, so good. What about the implementation? Initially, let's provide a simple implementation to serve the user segment list (`SegmentList`). We could do this at [./services/src/main/scala/runtime/RFMAnalysisServiceHandler.scala](./services/src/main/scala/runtime/RFMAnalysisServiceHandler.scala):
 
 ```scala
 package scalaexchange
@@ -325,7 +381,7 @@ class RFMAnalysisServiceHandler[F[_]: Applicative] extends RFMAnalysisService[F]
 }
 ```
 
-As you can see, we are hardcoding the segment list, nonetheless, this list could be fetched from a database, but we are good for now with this dummy implementation.
+As you can see, we are hardcoding the segment list. Nonetheless, this list could be fetched from a database, but, we are good for now with this dummy implementation.
 
 As takeaways, with this protocol definition, we have two things:
 
@@ -341,7 +397,7 @@ As we mentioned at the end of the last section, we are:
 * Bootstrapping an RPC Server (on port `8080`, for example). Before doing that, we need to bind the previous service to this server.
 * Invoke the service from the client side, using the auto-generated client for the previously defined protocol.
 
-For both challenges, we need to apply effects to an specific concurrent Monad. We've chosen `cats.effect.IO`, from [cats-effect](https://github.com/typelevel/cats-effect), but could be any other. For this reason, we are adding to our [build.sbt](./build.sbt) file the sbt dependency, which it'll be provided transitively by [frees-async-cats-effect](https://github.com/frees-io/freestyle/tree/master/modules/async/async-cats-effect/shared/src) Freestyle integration. This integration basically provides an `AsyncContext` for `cats.effect.IO`.
+For both challenges, we need to apply effects to an specific concurrent Monad. We've chosen `cats.effect.IO`, from [cats-effect](https://github.com/typelevel/cats-effect), but it could be any other. For this reason, we are adding the sbt dependency to our [build.sbt](./build.sbt) file, which will be provided transitively by [frees-async-cats-effect](https://github.com/frees-io/freestyle/tree/master/modules/async/async-cats-effect/shared/src) Freestyle integration. This integration basically provides an `AsyncContext` for `cats.effect.IO`.
 
 Add the following to the `commonSettings`:
 
@@ -349,7 +405,7 @@ Add the following to the `commonSettings`:
 "io.frees"  %% "frees-async-cats-effect" % freesV
 ```
 
-We've not finished with the [build.sbt](./build.sbt) file yet, since we need to add a new sbt module to place our RPC Server code:
+We haven't finished with the [build.sbt](./build.sbt) file yet, since we need to add a new sbt module to place our RPC Server code:
 
 ```scala
 // RPC Server.
@@ -363,9 +419,9 @@ lazy val server = project
 
 ### RPC Server
 
-All the code about this subsection will be placed at `server.scala` in [./server/src/main/scala/](./server/src/main/scala/).
+All the code for this subsection will be placed at `server.scala` in [./server/src/main/scala/](./server/src/main/scala/).
 
-* Concurrent Monad definition. In this case we could add a type alias for simplicity. This might be placed inside a `package object`, for example:
+* Concurrent Monad definition. In this case, we can add a type alias for simplicity. This might be placed inside a `package object`, for example:
 
 ```scala
 package scalaexchange
@@ -381,10 +437,10 @@ package object serverapp {
 }
 ```
 
-* Implicit Runtime evidences. At least we need to provide:
+* Implicit Runtime evidences. At the very least, we need to provide:
   * An `FSHandler` (Natural Transformation) instance of the service defined before.
   * Server configuration, where we will bind the `RFMAnalysis` service and configure the tcp port to `8080`.
-  
+
   This is done at `implicits.scala` in [./server/src/main/scala/](./server/src/main/scala/)
 
 ```scala
@@ -419,8 +475,8 @@ trait Implicits extends scalaexchange.CommonImplicits {
 
 Notice `import freestyle.rpc.server.implicits._`, which is providing all we need to bootstrap the server, in terms of common async instances and so on.
 
-* Finally, how the **Server** would look like?
-  Have a look to `ServerApp.scala` in [./server/src/main/scala/](./server/src/main/scala/)
+* Finally, how would the **Server** look like?
+  Have a look at `ServerApp.scala` in [./server/src/main/scala/](./server/src/main/scala/)
 
 
 ```scala
@@ -447,9 +503,9 @@ sbt server/run
 
 ### App Client Demo
 
-Now, let's see how the auto-generated client can be used to invoke this service, we'll do it in our [app](./app/src/main/scala) sbt module.
+Now, let's see how the auto-generated client can be used to invoke this service. We'll do this in our [app](./app/src/main/scala) sbt module.
 
-First, let's define some needed instances to setup the client, like the port where the server is listening to the incoming connections.
+First, let's define some instances needed to setup the client, like the port where the server is listening to the incoming connections.
 
 Let's start with `implicits.scala` in [./app/src/main/scala/](./app/src/main/scala/)
 
@@ -505,14 +561,14 @@ object AppRFMClient extends Implicits {
 }
 ```
 
-Keep in mind two important _imports_ that are making possible this program interpretation by the `ConcurrentMonad`, which is a `cats.effect.IO` type alias, as we mentioned earlier:
+Keep in mind two important _imports_ that are making this program interpretation possible by the `ConcurrentMonad`, which is a `cats.effect.IO` type alias, as we mentioned earlier:
 
 ```
 import freestyle.asyncCatsEffect.implicits._ // From frees-async-cats-effect
 import freestyle.rpc.client.implicits._      // From frees-rpc
 ```
 
-If you ran the server in the previous step, now you can test this client typing the following command:
+If you ran the server in the previous step, you can now test this client by typing the following command:
 
 ```bash
 sbt "app/runMain scalaexchange.app.AppRFMClient"
@@ -542,9 +598,9 @@ lazy val services = project
 def userEvents(empty: Empty.type): F[Observable[UserEvent]]
 ```
 
-As you might notice, we are exposing a server streaming service that it's returning a `monix.reactive.Observable` enclosing every user event that will be generated by our data-generator. Apart from this streaming returning type, we need to specify that we are creating a _ResponseStreaming_ service, by using the `@stream[ResponseStreaming.type]` annotation.
+As you might notice, we are exposing a server streaming service that is returning a `monix.reactive.Observable` enclosing every user event that will be generated by our data-generator. Apart from this streaming returning type, we need to specify that we are creating a _ResponseStreaming_ service, by using the `@stream[ResponseStreaming.type]` annotation.
 
-* Streaming Service implementation: basically we are done in this part since our data-generator is already using a `monix.reactive.Observable` of `UserEvent`.
+* Streaming Service implementation: we are basically done with this part since our data-generator is already using a `monix.reactive.Observable` of `UserEvent`.
 
 Look at `RFMAnalysisServiceHandler.scala` in [./services/src/main/scala/runtime/](./services/src/main/scala/runtime/)
 
@@ -559,7 +615,7 @@ override def userEvents(empty: Empty.type): F[Observable[UserEvent]] =
 ```
 
 * Finally, let's use this new service from our `app` client application. This would be an example.
-  Have a look to `AppRFMClient.scala` in [./app/src/main/scala/](./app/src/main/scala/)
+  Have a look at `AppRFMClient.scala` in [./app/src/main/scala/](./app/src/main/scala/)
 
 ```scala
 package scalaexchange
@@ -615,3 +671,206 @@ sbt "app/runMain scalaexchange.app.AppRFMClient"
 ```
 
 The expected result is that both server and client console outputs will show these generated user events.
+
+## Client Streaming
+
+So far, we've seen how to implement RPC services in two different fashions: unary and server streaming. Now, we are going to see how to implement a new type of service where the client is the one sending a stream of data. Concretely, and for demo purposes in this workshop, think about a server endpoint able to store `Orders` somewhere that any client is sending them in a streaming way.
+
+* As usual, let's add some new settings to our `build.sbt` file. For the sake of simplicity, we are adding a couple of new dependencies to our `commonSettings` val:
+
+```scala
+// ... libraryDependencies ++= Seq(
+"joda-time" % "joda-time" % "2.9.9",
+"com.github.tototoshi" %% "scala-csv" % "1.3.5"
+//...
+```
+
+* Let's define a new model for orders, which we could place at [./src/main/scala/models.scala](./src/main/scala/models.scala):
+
+```scala
+case class CustomerData(date: String, orderId: String, total: Int)
+
+case class Order(customerId: Int, data: CustomerData)
+```
+
+* Moving on, we are now prepared to add this new client streaming service to the protocol definition at [./services/src/main/scala/protocol.scala](./services/src/main/scala/protocol.scala)
+
+```scala
+// ... Add a sample response message as ack of this new service
+final case class Ack(result: String)
+
+// ...
+
+@rpc(Avro)
+@stream[RequestStreaming.type]
+def orderStream(orders: Observable[Order]): F[Ack]
+```
+
+As you can see, now the streaming type (`Observable`) is in the request. Also, notice the annotation in this case: `@stream[RequestStreaming.type]`.
+
+* Next, let's add the implementation for this new service where, in this case, we will consume the stream of `Order`s writing it to an `CSV` (Comma-separated values) file. The following code shows how [./services/src/main/scala/runtime/RFMAnalysisServiceHandler.scala](./services/src/main/scala/runtime/RFMAnalysisServiceHandler.scala) would look like after implementing the `orderStream` service.
+
+```scala
+package scalaexchange
+package services
+package runtime
+
+import java.io.File
+
+import cats.{~>, Applicative}
+import com.github.tototoshi.csv._
+import freestyle.rpc.protocol._
+import monix.eval.Task
+import monix.execution.Scheduler
+import monix.reactive.Observable
+
+import scalaexchange.datagenerator.StreamingService
+import scalaexchange.services.protocol._
+
+class RFMAnalysisServiceHandler[F[_]: Applicative](implicit S: Scheduler, T2F: Task ~> F)
+    extends RFMAnalysisService[F] {
+
+  private[this] val segmentList: List[Segment] = List(
+    Segment("Champions", 4, 5, 4, 5, 4, 5),
+    Segment("Loyal Customers", 2, 5, 3, 5, 3, 5),
+    Segment("Potential Loyalist", 3, 5, 1, 3, 1, 3),
+    Segment("New Customers", 4, 5, 0, 1, 0, 1),
+    Segment("Customers Needing Attention", 3, 4, 0, 1, 0, 1),
+    Segment("About To Sleep", 2, 3, 0, 2, 0, 2),
+    Segment("Can't Lose Them", 0, 1, 4, 5, 4, 5),
+    Segment("At Risk", 0, 2, 2, 5, 2, 5),
+    Segment("Hibernating", 1, 2, 1, 2, 1, 2),
+    Segment("Lost", 0, 2, 0, 2, 0, 2)
+  )
+
+  private[this] val streamingService = new StreamingService
+
+  private[this] val outPath: String = "orders.csv"
+
+  override def segments(empty: Empty.type): F[protocol.SegmentList] =
+    Applicative[F].pure(SegmentList(segmentList))
+
+  override def userEvents(empty: Empty.type): F[Observable[UserEvent]] =
+    Applicative[F].pure(streamingService.userEventsStream)
+
+  override def orderStream(orders: Observable[Order]): F[Ack] = T2F {
+    val f: File           = new File(outPath)
+    val writer: CSVWriter = CSVWriter.open(f)
+
+    orders
+      .foreachL { order =>
+        writer.writeRow(
+          List(order.data.date, order.data.orderId, order.customerId, order.data.total)
+        )
+      }
+      .map { _ =>
+        writer.close()
+        Ack(" 👍 ")
+      }
+  }
+}
+```
+
+Now, a few new things are needed for the `orderStream` service implementation:
+
+- A CSV Writer for Scala, in this case we are using: https://github.com/tototoshi/scala-csv. However, this order stream could be stored somewhere else, like a database or sent to a kafka topic, among other choices.
+- In the class constructor, we are requiring a new implicit dependency (`T2F: Task ~> F`), which is a natural transformation to go from `monix.eval.Task` to our `F`. This is needed because of the way we are consuming the `monix.reactive.Observable` through the `foreachL` (it creates a new `monix.eval.Task Task` that will consume the observable, executing the given callback for each element).
+
+* Actually, we need to specify the same implicit evidence requirement when instantiating the `RFMAnalysisServiceHandler`, at class [scalaexchange.serverapp.Implicits](./server/src/main/scala/implicits.scala):
+
+```scala
+implicit def rfmAnalisysServiceHandler[F[_]: Applicative](
+    implicit T2F: monix.eval.Task ~> F): RFMAnalysisServiceHandler[F] =
+  new RFMAnalysisServiceHandler[F]
+```
+
+Fortunately, we don't need to implement anything else because `frees-rpc` is providing for free this natural transformation when importing `freestyle.rpc.server.implicits._`.
+
+* To finish this section, let's update our client application with the new server version, where we can invoke the `orderStream` service that sends a stream of orders. In order to create the stream, we are using scalacheck together with [scalacheck-toolbox](https://github.com/47deg/scalacheck-toolbox) to generate random dates for a specific period of time.
+
+See [./app/src/main/scala/AppRFMClient.scala](./app/src/main/scala/AppRFMClient.scala)
+
+
+```scala
+package scalaexchange
+package app
+
+import cats.effect.IO
+import freestyle.rpc.protocol.Empty
+import freestyle.asyncCatsEffect.implicits._
+import freestyle.rpc.client.implicits._
+import monix.reactive.Observable
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
+import scalaexchange.services.protocol._
+
+object AppRFMClient extends Implicits {
+
+  def main(args: Array[String]): Unit = {
+
+    implicit val rfmClient: RFMAnalysisService.Client[IO] =
+      RFMAnalysisService.client[IO](channel)
+
+    val (segments: IO[SegmentList], stream: Observable[UserEvent], ack: IO[Ack]) =
+      (
+        rfmClient.segments(Empty),
+        rfmClient.userEvents(Empty),
+        rfmClient.orderStream(ordersStreamObs)
+      )
+
+    println(s"Segments: \n${segments.unsafeRunSync().list.mkString("\n")}\n")
+    println(s"Client Streaming: \n${ack.unsafeRunSync()}\n")
+    Await.ready(
+      stream
+        .map { u =>
+          println(u)
+          u
+        }
+        .completedL
+        .runAsync,
+      Duration.Inf)
+  }
+
+  private[this] def ordersStreamObs: Observable[Order] = {
+    val orderList: List[Order] = (1 to 1000).map { customerId =>
+      import com.fortysevendeg.scalacheck.datetime.GenDateTime
+      import org.joda.time.{DateTime, Period}
+      import org.scalacheck._
+      import com.fortysevendeg.scalacheck.datetime.instances.joda.jodaForPeriod
+
+      (for {
+        date    <- GenDateTime.genDateTimeWithinRange(DateTime.parse("2017-12-01"), Period.days(22))
+        orderId <- Gen.uuid
+        total   <- Gen.choose[Int](5, 200)
+      } yield
+        Order(
+          customerId,
+          CustomerData(date.toString, orderId.toString, total)
+        )).sample.get
+    }.toList
+
+    Observable.fromIterable(orderList)
+  }
+
+}
+```
+
+And that's it for now. To test this out, run the server:
+
+```bash
+sbt server/run
+```
+
+And run the new client application version:
+
+```bash
+sbt "app/runMain scalaexchange.app.AppRFMClient"
+```
+
+The expected result for the steps completed in this section would be that you will find an `orders.csv` file within your project, which will contain all the orders sent via streaming from the client. Pat your back for reaching this point.
+
+## What's Next
+
+* Bi-directional streaming.
+* Complete the RFM Analysis example through new RPC microservices.

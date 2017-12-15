@@ -5,9 +5,11 @@ lazy val commonSettings: Seq[Def.Setting[_]] = Seq(
   addCompilerPlugin("org.scalameta" % "paradise" % "3.0.0-M10" cross CrossVersion.full),
   libraryDependencies ++= Seq(
     "io.frees" %% "frees-core" % freesV,
-    "io.frees"  %% "frees-async-cats-effect" % freesV,
+    "io.frees" %% "frees-async-cats-effect" % freesV,
     "io.frees" %% "frees-rpc" % "0.4.1",
-    "org.scalameta" %% "scalameta" % "1.8.0"),
+    "org.scalameta" %% "scalameta" % "1.8.0",
+    "joda-time" % "joda-time" % "2.9.9",
+    "com.github.tototoshi" %% "scala-csv" % "1.3.5"),
   scalacOptions ++= Seq("-Xplugin-require:macroparadise", "-Ywarn-unused-import"),
   scalacOptions in(Compile, console) ~= (_ filterNot (_ contains "paradise")) // macroparadise plugin doesn't work in repl yet.
 )
@@ -29,7 +31,6 @@ lazy val `data-generator` =
     .dependsOn(`functional-microservices`)
     .settings(
       libraryDependencies ++= Seq(
-        "joda-time" % "joda-time" % "2.9.9",
         "io.monix" %% "monix" % "3.0.0-M2",
         "org.scalacheck" %% "scalacheck" % "1.13.4",
         "com.47deg" %% "scalacheck-toolbox-datetime" % "0.2.3"
